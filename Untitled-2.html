@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Realistic Physics Garden & Butterfly</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 60%, #020617 100%);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #gardenCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 45px rgba(236, 72, 153, 0.2);
+    }
+
+    .input-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .input-box:focus-within {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: #ec4899;
+      box-shadow: 0 0 15px rgba(236, 72, 153, 0.35);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .shake-anim { animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center relative">
+
+  <!-- Interaktiv Canvas -->
+  <canvas id="gardenCanvas"></canvas>
+
+  <!-- Login Card UI -->
+  <div id="loginCard" class="glass-card w-[340px] rounded-2xl p-6 relative z-10 transition-all duration-300">
+    
+    <div class="text-center mb-5">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 mb-3 shadow-lg shadow-pink-500/30">
+        <i class="fa-solid fa-crown text-white text-xl animate-pulse"></i>
+      </div>
+      <h2 class="text-xl font-bold text-white tracking-wide">Realistic Garden UI</h2>
+      <p class="text-slate-400 text-xs mt-0.5">Kapalak gul bilan birga tebranadi</p>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-[10px] font-semibold text-slate-300 uppercase tracking-widest mb-1">Email</label>
+        <div class="input-box flex items-center rounded-xl px-3.5 py-2.5">
+          <i class="fa-regular fa-envelope text-slate-400 text-xs mr-2.5"></i>
+          <input 
+            type="email" 
+            id="email" 
+            required
+            placeholder="garden@magic.uz" 
+            class="bg-transparent border-none text-white w-full focus:outline-none text-xs placeholder-slate-500"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-[10px] font-semibold text-slate-300 uppercase tracking-widest">Maxfiy Kalit</label>
+          <a href="#" class="text-[10px] text-pink-400 hover:text-pink-300 transition-colors">Yordam</a>
+        </div>
+        <div class="input-box flex items-center rounded-xl px-3.5 py-2.5">
+          <i class="fa-solid fa-lock text-slate-400 text-xs mr-2.5"></i>
+          <input 
+            type="password" 
+            id="password" 
+            required
+            oninput="checkStrength(this.value)"
+            placeholder="••••••••••••" 
+            class="bg-transparent border-none text-white w-full focus:outline-none text-xs placeholder-slate-500"
+          />
+          <button type="button" onclick="togglePassword()" class="text-slate-400 hover:text-white transition-colors">
+            <i id="eyeIcon" class="fa-regular fa-eye-slash text-xs"></i>
+          </button>
+        </div>
+
+        <div class="mt-2 flex gap-1 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+          <div id="bar1" class="h-full w-1/3 rounded-full bg-transparent transition-all duration-300"></div>
+          <div id="bar2" class="h-full w-1/3 rounded-full bg-transparent transition-all duration-300"></div>
+          <div id="bar3" class="h-full w-1/3 rounded-full bg-transparent transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <button 
+        type="submit" 
+        id="submitBtn"
+        class="w-full py-3 mt-1 rounded-xl font-semibold text-xs text-white bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 hover:opacity-95 active:scale-95 transition-all duration-200 shadow-lg shadow-pink-500/25 flex items-center justify-center gap-2"
+      >
+        <span>Tizimga kirish</span>
+        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+      </button>
+    </form>
+
+    <div class="mt-5 text-center text-[11px] text-slate-400">
+      Sichqonchani bosing — <span class="text-amber-400 font-medium">Ona Kapalak uchib keladi</span>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gardenCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      initEngine();
+    });
+
+    const target = { x: null, y: null, active: false, timer: 0 };
+
+    window.addEventListener('click', (e) => {
+      target.x = e.x;
+      target.y = e.y;
+      target.active = true;
+      target.timer = 200;
+
+      for (let i = 0; i < 25; i++) {
+        dustParticles.push(new DustParticle(e.x, e.y, '#fbbf24'));
+      }
+    });
+
+    // --- GULLAR SINFI ---
+    class Flower {
+      constructor(id, x) {
+        this.id = id;
+        this.x = x;
+        this.y = height - Math.random() * 80 - 50;
+        this.stemHeight = height - this.y;
+        this.size = Math.random() * 12 + 16;
+        this.color = ['#ec4899', '#a855f7', '#38bdf8', '#f43f5e', '#fbbf24'][Math.floor(Math.random() * 5)];
+        
+        this.baseWindAngle = Math.random() * Math.PI * 2;
+        this.windSpeed = 0.02 + Math.random() * 0.01;
+        
+        this.offset = 0;      
+        this.velocity = 0;    
+        this.stiffness = 0.07; 
+        this.damping = 0.91;   
+      }
+
+      applyImpact(force) {
+        this.velocity += force;
+      }
+
+      draw() {
+        this.baseWindAngle += this.windSpeed;
+        const naturalSway = Math.sin(this.baseWindAngle) * 6;
+
+        // Prujina dinamikasi
+        this.velocity -= this.offset * this.stiffness;
+        this.velocity *= this.damping;
+        this.offset += this.velocity;
+
+        const totalSwayX = naturalSway + this.offset;
+
+        // Poyasi
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(this.x, height);
+        ctx.quadraticCurveTo(this.x, height - this.stemHeight / 2, this.x + totalSwayX, this.y);
+        ctx.stroke();
+
+        // Gul boshi koordinatalari
+        const currentHeadX = this.x + totalSwayX;
+        const currentHeadY = this.y;
+
+        ctx.save();
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = this.color;
+
+        for (let i = 0; i < 5; i++) {
+          const angle = (i * Math.PI * 2) / 5;
+          const px = currentHeadX + Math.cos(angle) * (this.size * 0.7);
+          const py = currentHeadY + Math.sin(angle) * (this.size * 0.7);
+
+          ctx.beginPath();
+          ctx.arc(px, py, this.size * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Gul markazi
+        ctx.fillStyle = '#fef08a';
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.arc(currentHeadX, currentHeadY, this.size * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        // Gulning joriy nuqtasi qaytariladi
+        return { 
+          id: this.id, 
+          x: currentHeadX, 
+          y: currentHeadY, 
+          flowerObj: this 
+        };
+      }
+    }
+
+    // --- KAPALAKLAR SINFI ---
+    class Butterfly {
+      constructor(isQueen = false) {
+        this.isQueen = isQueen;
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height * 0.6;
+        this.size = this.isQueen ? 24 : Math.random() * 6 + 7;
+        this.vx = (Math.random() - 0.5) * (this.isQueen ? 2.5 : 2);
+        this.vy = (Math.random() - 0.5) * (this.isQueen ? 2.5 : 2);
+        this.angle = Math.random() * Math.PI * 2;
+        
+        this.wingAngle = 0;
+        this.wingSpeed = this.isQueen ? 0.22 : 0.18;
+
+        this.isLanded = false;
+        this.landTimer = 0;
+        this.targetFlowerId = null;
+
+        if (this.isQueen) {
+          this.colors = { main: '#fbbf24', secondary: '#f43f5e', glow: '#fbbf24' };
+        } else {
+          const palette = [
+            { main: '#ec4899', secondary: '#c084fc', glow: '#ec4899' },
+            { main: '#38bdf8', secondary: '#818cf8', glow: '#38bdf8' },
+            { main: '#34d399', secondary: '#38bdf8', glow: '#34d399' }
+          ];
+          this.colors = palette[Math.floor(Math.random() * palette.length)];
+        }
+      }
+
+      update(flowerMap) {
+        // 1. GULGA QONGAN HOLAT (BOG'LANGAN REALISTIK FIZIKA)
+        if (this.isLanded) {
+          const currentFlower = flowerMap.get(this.targetFlowerId);
+
+          if (currentFlower) {
+            // KAPALAK GUL JORIY DINO-KOORDINATASI BILAN BIRGA TEBRANADI
+            this.x = currentFlower.x;
+            this.y = currentFlower.y - 10;
+          }
+
+          this.wingAngle += 0.05; // Sekin qanot silkish
+
+          if (Math.random() < 0.25) {
+            dustParticles.push(new DustParticle(this.x, this.y, this.colors.main));
+          }
+
+          this.landTimer--;
+          if (this.landTimer <= 0 || (this.isQueen && target.active)) {
+            if (currentFlower) {
+              currentFlower.flowerObj.applyImpact(-this.lastApproachVx * 0.8);
+            }
+            this.isLanded = false;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = -Math.random() * 2.5 - 1;
+          }
+          return;
+        }
+
+        // 2. SICHQONCHA CHAQIRUVI
+        if (this.isQueen && target.active) {
+          const dx = target.x - this.x;
+          const dy = target.y - this.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist > 15) {
+            this.vx += (dx / dist) * 0.28;
+            this.vy += (dy / dist) * 0.28;
+          }
+
+          target.timer--;
+          if (target.timer <= 0) target.active = false;
+        } else {
+          // TASODIFIY QONISH
+          if (Math.random() < 0.006 && flowerMap.size > 0) {
+            const flowerList = Array.from(flowerMap.values());
+            const randomFlower = flowerList[Math.floor(Math.random() * flowerList.length)];
+            const distToFlower = Math.hypot(randomFlower.x - this.x, randomFlower.y - this.y);
+
+            if (distToFlower < 220) {
+              this.targetFlowerId = randomFlower.id;
+              this.isLanded = true;
+              this.landTimer = Math.floor(Math.random() * 180 + 120);
+
+              // IMPULS BERING: Gul egiladi va tebranish boshlanadi
+              this.lastApproachVx = this.vx;
+              const impactForce = this.vx * (this.isQueen ? 16 : 8); 
+              randomFlower.flowerObj.applyImpact(impactForce);
+
+              for (let i = 0; i < 12; i++) {
+                dustParticles.push(new DustParticle(randomFlower.x, randomFlower.y, this.colors.main, this.vx));
+              }
+            }
+          }
+
+          // Erkin parvoz
+          this.angle += (Math.random() - 0.5) * 0.12;
+          this.vx += Math.cos(this.angle) * 0.08;
+          this.vy += Math.sin(this.angle) * 0.08;
+        }
+
+        this.wingAngle += this.wingSpeed;
+
+        const maxSpeed = this.isQueen ? 3.8 : 2.4;
+        const speed = Math.hypot(this.vx, this.vy);
+        if (speed > maxSpeed) {
+          this.vx = (this.vx / speed) * maxSpeed;
+          this.vy = (this.vy / speed) * maxSpeed;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Ekran chegaralari
+        if (this.x < -40) this.x = width + 40;
+        if (this.x > width + 40) this.x = -40;
+        if (this.y < -40) this.y = height + 40;
+        if (this.y > height + 40) this.y = -40;
+
+        if (Math.random() < (this.isQueen ? 0.6 : 0.2)) {
+          dustParticles.push(new DustParticle(this.x, this.y, this.colors.main));
+        }
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.isLanded ? 0 : Math.atan2(this.vy, this.vx) + Math.PI / 2);
+
+        const wingScale = Math.sin(this.wingAngle);
+
+        ctx.shadowColor = this.colors.glow;
+        ctx.shadowBlur = this.isQueen ? 25 : 12;
+
+        // Qanotlar
+        ctx.fillStyle = this.colors.main;
+        ctx.beginPath();
+        ctx.ellipse(-this.size * 0.65 * wingScale, -this.size * 0.35, this.size * 0.85 * Math.abs(wingScale), this.size * 0.55, Math.PI / 4, 0, Math.PI * 2);
+        ctx.ellipse(this.size * 0.65 * wingScale, -this.size * 0.35, this.size * 0.85 * Math.abs(wingScale), this.size * 0.55, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = this.colors.secondary;
+        ctx.beginPath();
+        ctx.ellipse(-this.size * 0.5 * wingScale, -this.size * 0.3, this.size * 0.5 * Math.abs(wingScale), this.size * 0.3, Math.PI / 4, 0, Math.PI * 2);
+        ctx.ellipse(this.size * 0.5 * wingScale, -this.size * 0.3, this.size * 0.5 * Math.abs(wingScale), this.size * 0.3, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = this.colors.main;
+        ctx.beginPath();
+        ctx.ellipse(-this.size * 0.45 * wingScale, this.size * 0.35, this.size * 0.55 * Math.abs(wingScale), this.size * 0.4, Math.PI / 3, 0, Math.PI * 2);
+        ctx.ellipse(this.size * 0.45 * wingScale, this.size * 0.35, this.size * 0.55 * Math.abs(wingScale), this.size * 0.4, -Math.PI / 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Gavda
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.isQueen ? 2.5 : 1.5, this.size * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    // --- SEHRLI ZARRALAR ---
+    class DustParticle {
+      constructor(x, y, color, extraVx = 0) {
+        this.x = x;
+        this.y = y;
+        this.radius = Math.random() * 2 + 0.5;
+        this.vx = (Math.random() - 0.5) * 1 + extraVx * 0.3;
+        this.vy = (Math.random() - 0.5) * 1 + 0.2;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.02 + 0.01;
+        this.color = color || '#fbbf24';
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.alpha);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    let flowers = [];
+    let butterflies = [];
+    let dustParticles = [];
+
+    function initEngine() {
+      flowers = [];
+      butterflies = [];
+      dustParticles = [];
+
+      const flowerCount = Math.floor(width / 110);
+      for (let i = 0; i < flowerCount; i++) {
+        flowers.push(new Flower(i, i * 110 + 60));
+      }
+
+      butterflies.push(new Butterfly(true));
+
+      const count = Math.min(Math.floor((width * height) / 28000), 20);
+      for (let i = 0; i < count; i++) {
+        butterflies.push(new Butterfly(false));
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Gullarning joriy koordinatalarini Map-ga yig'ish
+      const flowerMap = new Map();
+      for (let i = 0; i < flowers.length; i++) {
+        const flowerData = flowers[i].draw();
+        flowerMap.set(flowerData.id, flowerData);
+      }
+
+      if (target.active) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(251, 191, 36, ${target.timer / 200})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, 15 + Math.sin(Date.now() * 0.01) * 5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      for (let i = dustParticles.length - 1; i >= 0; i--) {
+        const d = dustParticles[i];
+        d.update();
+        d.draw();
+        if (d.alpha <= 0) dustParticles.splice(i, 1);
+      }
+
+      for (let i = butterflies.length - 1; i >= 0; i--) {
+        const b = butterflies[i];
+        b.update(flowerMap);
+        b.draw();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    initEngine();
+    animate();
+
+    /* Form Funktsiyalari */
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const eyeIcon = document.getElementById('eyeIcon');
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.className = 'fa-regular fa-eye text-xs';
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.className = 'fa-regular fa-eye-slash text-xs';
+      }
+    }
+
+    function checkStrength(val) {
+      const b1 = document.getElementById('bar1');
+      const b2 = document.getElementById('bar2');
+      const b3 = document.getElementById('bar3');
+
+      b1.className = b2.className = b3.className = "h-full w-1/3 rounded-full transition-all duration-300";
+
+      if (val.length > 0 && val.length < 5) {
+        b1.classList.add('bg-red-500');
+      } else if (val.length >= 5 && val.length < 8) {
+        b1.classList.add('bg-yellow-500');
+        b2.classList.add('bg-yellow-500');
+      } else if (val.length >= 8) {
+        b1.classList.add('bg-emerald-400');
+        b2.classList.add('bg-emerald-400');
+        b3.classList.add('bg-emerald-400');
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const card = document.getElementById('loginCard');
+      const btn = document.getElementById('submitBtn');
+      const pass = document.getElementById('password').value;
+
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-xs"></i> Tekshirilmoqda...`;
+
+      setTimeout(() => {
+        if (pass.length < 6) {
+          card.classList.add('shake-anim');
+          btn.innerHTML = `<span>Tizimga kirish</span><i class="fa-solid fa-arrow-right text-[10px]"></i>`;
+          setTimeout(() => card.classList.remove('shake-anim'), 400);
+        } else {
+          card.style.borderColor = "#34d399";
+          btn.className = "w-full py-3 mt-1 rounded-xl font-semibold text-xs text-white bg-emerald-500 shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2";
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> Xush kelibsiz!`;
+        }
+      }, 750);
+    }
+  </script>
+</body>
+</html>
